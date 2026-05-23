@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trắc nghiệm Chuyên sâu: Dự báo học thuật 4.0</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --primary: #005088;
+            --primary-light: #e6eff5;
+            --secondary: #11caa0;
+            --text-main: #334155;
+            --text-muted: #64748b;
+            --bg-body: #f8fafc;
+            --bg-card: #ffffff;
+            --correct: #10b981;
+            --incorrect: #ef4444;
+            --hint-color: #f1c40f;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Lexend', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding: 20px;
+            padding-top: 100px; /* Space for sticky header */
+        }
+
+        /* Sticky Stats Header */
+        .sticky-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            z-index: 1000;
+            padding: 15px 20px;
+            border-bottom: 2px solid var(--primary-light);
+        }
+
+        .header-content {
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .progress-container {
+            flex-grow: 1;
+            margin-right: 30px;
+        }
+
+        .progress-bar-bg {
+            background-color: #e2e8f0;
+            height: 10px;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .progress-bar-fill {
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            width: 0%;
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .live-score {
+            font-weight: 700;
+            font-size: 18px;
+            color: var(--primary);
+            background-color: var(--primary-light);
+            padding: 8px 16px;
+            border-radius: 50px;
+            border: 1px solid rgba(0, 80, 136, 0.2);
+            white-space: nowrap;
+        }
+
+        .quiz-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        header.intro {
+            text-align: center;
+            margin-bottom: 40px;
+            background: linear-gradient(135deg, var(--primary), #00365d);
+            padding: 40px 20px;
+            border-radius: 24px;
+            color: white;
+            box-shadow: 0 10px 25px rgba(0, 80, 136, 0.15);
+        }
+
+        header.intro h1 {
+            font-size: 32px;
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+
+        header.intro p {
+            font-size: 16px;
+            opacity: 0.9;
+            font-style: italic;
+        }
+
+        .question-card {
+            background-color: var(--bg-card);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+            border: 1px solid #e2e8f0;
+            position: relative;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .question-card:hover {
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        }
+
+        .badge {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            padding: 4px 12px;
+            border-radius: 50px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .badge.pending {
+            background-color: #f1f5f9;
+            color: var(--text-muted);
+        }
+
+        .badge.correct {
+            background-color: #d1fae5;
+            color: var(--correct);
+        }
+
+        .badge.incorrect {
+            background-color: #fee2e2;
+            color: var(--incorrect);
+        }
+
+        .question-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 20px;
+            padding-right: 120px; /* space for badge */
+            line-height: 1.5;
+        }
+
+        .options-list {
+            list-style: none;
+        }
+
+        .option-item {
+            display: flex;
+            align-items: center;
+            padding: 16px 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            margin-bottom: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 15px;
+            font-weight: 500;
+            position: relative;
+        }
+
+        .option-item:hover {
+            border-color: var(--primary);
+            background-color: var(--primary-light);
+        }
+
+        .option-item input {
+            margin-right: 15px;
+            accent-color: var(--primary);
+            transform: scale(1.3);
+            cursor: pointer;
+        }
+
+        /* Interactive states */
+        .option-item.selected {
+            border-color: var(--primary);
+            background-color: var(--primary-light);
+        }
+
+        .option-item.show-correct {
+            border-color: var(--correct) !important;
+            background-color: #ecfdf5 !important;
+            color: #065f46 !important;
+            font-weight: 700;
+        }
+
+        .option-item.show-correct::after {
+            content: "\f00c";
+            font-family: "Font Awesome 5 Free";
+            font-weight: 900;
+            position: absolute;
+            right: 20px;
+            color: var(--correct);
+            font-size: 18px;
+        }
+
+        .option-item.show-incorrect {
+            border-color: var(--incorrect) !important;
+            background-color: #fef2f2 !important;
+            color: #991b1b !important;
+        }
+
+        .option-item.show-incorrect::after {
+            content: "\f00d";
+            font-family: "Font Awesome 5 Free";
+            font-weight: 900;
+            position: absolute;
+            right: 20px;
+            color: var(--incorrect);
+            font-size: 18px;
+        }
+
+        .option-item.disabled {
+            pointer-events: none;
+            opacity: 0.8;
+        }
+
+        /* Utilities Buttons inside Card */
+        .card-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn-hint {
+            background: none;
+            border: 1px dashed var(--hint-color);
+            color: #b7791f;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .btn-hint:hover {
+            background-color: #fefbeb;
+        }
+
+        .hint-box {
+            display: none;
+            margin-top: 10px;
+            padding: 15px;
+            background-color: #fffbeb;
+            border-left: 4px solid var(--hint-color);
+            border-radius: 4px;
+            font-size: 14px;
+            color: #744210;
+        }
+
+        .hint-box.visible {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+
+        .explanation-box {
+            margin-top: 15px;
+            padding: 20px;
+            background-color: #f8fafc;
+            border-left: 4px solid var(--primary);
+            border-radius: 4px 12px 12px 4px;
+            font-size: 14.5px;
+            display: none;
+            border-top: 1px solid #e2e8f0;
+            border-right: 1px solid #e2e8f0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .explanation-box.visible {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+
+        .explanation-box.correct-bg {
+            border-left-color: var(--correct);
+            background-color: #f0fdf4;
+        }
+
+        .explanation-box.incorrect-bg {
+            border-left-color: var(--incorrect);
+            background-color: #fff5f5;
+        }
+
+        /* Final Results Panel */
+        .result-panel {
+            background: white;
+            padding: 40px;
+            border-radius: 24px;
+            text-align: center;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            margin-top: 40px;
+            display: none;
+            border: 2px solid var(--secondary);
+            animation: scaleIn 0.4s ease;
+        }
+
+        .result-score {
+            font-size: 64px;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 20px 0;
+        }
+
+        .btn-restart {
+            margin-top: 25px;
+            padding: 14px 28px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-restart:hover {
+            background-color: #003d68;
+            transform: scale(1.05);
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        @media (max-width: 640px) {
+            body { padding-top: 110px; }
+            .header-content { flex-direction: column; gap: 10px; }
+            .progress-container { margin-right: 0; width: 100%; }
+            .question-title { padding-right: 0; margin-top: 25px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Sticky Progress Header -->
+<div class="sticky-header">
+    <div class="header-content">
+        <div class="progress-container">
+            <span style="font-size: 14px; font-weight: 500; color: var(--text-muted);" id="progressText">Đã trả lời: 0/10 câu hỏi</span>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="progressBar"></div>
+            </div>
+        </div>
+        <div class="live-score" id="liveScore">Điểm số: 0 / 10</div>
+    </div>
+</div>
+
+<div class="quiz-container">
+    <header class="intro">
+        <h1>BÀI KIỂM TRA TRẮC NGHIỆM CHUYÊN SÂU</h1>
+        <p>Thách thức Kỹ thuật, So sánh thuật toán & Lý luận Khoa học dữ liệu (10 Câu)</p>
+    </header>
+
+    <form id="quizForm">
+        <!-- Câu 1 -->
+        <div class="question-card" id="card-q1">
+            <span class="badge pending" id="badge-q1">Chưa trả lời</span>
+            <div class="question-title">Câu 1: Vì sao việc sử dụng chỉ số Độ chính xác tổng thể (Accuracy) để đánh giá mô hình trong bài nghiên cứu này lại mang tính ngộ nhận và thiếu tin cậy?</div>
+            <div class="options-list">
+                <label class="option-item"><input type="radio" name="q1" value="A"> <span>A. Vì chỉ số Accuracy chỉ áp dụng được cho các bài toán hồi quy tuyến tính thay vì bài toán phân loại đa lớp.</span></label>
+                <label class="option-item"><input type="radio" name="q1" value="B"> <span>B. Vì tập dữ liệu có sự mất cân bằng lớn giữa các lớp, khiến một mô hình đoán bừa lớp đa số vẫn đạt điểm Accuracy cao trên lý thuyết.</span></label>
+                <label class="option-item"><input type="radio" name="q1" value="C"> <span>C. Vì thuật toán XGBoost không hỗ trợ tối ưu hóa và xuất ra chỉ số Accuracy trong quá trình huấn luyện.</span></label>
+                <label class="option-item"><input type="radio" name="q1" value="D"> <span>D. Vì dữ liệu đầu vào chứa quá nhiều biến số liên tục khiến điểm Accuracy bị dao động mạnh.</span></label>
+            </div>
+            <div class="card-actions">
+                <button type="button" class="btn-hint" onclick="toggleHint('hint-q1')"><i class="fa-solid fa-lightbulb"></i> Xem gợi ý</button>
+            </div>
+            <div class="hint-box" id="hint-q1">
+                Hãy xem xét tỷ lệ phân bố của lớp đa số chiếm hơn một nửa tập dữ liệu (56%) và điều gì xảy ra nếu hệ thống chỉ thiên vị đoán lớp này.
+            </div>
+            <div class="explanation-box" id="exp-q1">
+                <strong>Giải thích:</strong> Đáp án đúng là <strong>B</strong>. Khi lớp Thành công chiếm tới 56%, một mô hình phân loại không hiệu quả chỉ cần dự đoán tất cả là "Thành công" cũng sẽ đạt Accuracy 56% nhưng hoàn toàn vô dụng trong việc tìm kiếm các lớp rủi ro (thiểu số).
+            </div>
+        </div>
+
+        <!-- Câu 2 -->
+        <div class="question-card" id="card-q2">
+            <span class="badge pending" id="badge-q2">Chưa trả lời</span>
+            <div class="question-title">Câu 2: Khi so sánh hai kỹ thuật lấy mẫu, vì sao thuật toán ADASYN lại cho kết quả F1-score thấp hơn SMOTE trong thực nghiệm của bài báo?</div>
+            <div class="options-list">
+                <label class="option-item"><input type="radio" name="q2" value="A"> <span>A. ADASYN chỉ có khả năng xử lý bài toán phân loại nhị phân thay vì cấu trúc phân loại 3 lớp của bài toán.</span></label>
+                <label class="option-item"><input type="radio" name="q2" value="B"> <span>B. ADASYN thực hiện giảm bớt mẫu của lớp đa số khiến tập dữ liệu bị mất đi một lượng lớn thông tin nền tảng.</span></label>
+                <label class="option-item"><input type="radio" name="q2" value="C"> <span>C. ADASYN tập trung quá mức vào các vùng biên khó phân loại, dẫn đến việc nhân bản cả các điểm dữ liệu nhiễu (outliers).</span></label>
+                <label class="option-item"><input type="radio" name="q2" value="D"> <span>D. Mã nguồn của thuật toán ADASYN không tương thích tốt với thư viện Scikit-learn phiên bản mới.</span></label>
+            </div>
+            <div class="card-actions">
+                <button type="button" class="btn-hint" onclick="toggleHint('hint-q2')"><i class="fa-solid fa-lightbulb"></i> Xem gợi ý</button>
+            </div>
+            <div class="hint-box" id="hint-q2">
+                Hãy nhớ rằng vùng biên giữa các nhóm sinh viên thành công và thất bại thường có rất nhiều trường hợp ngoại lệ đan xen (ví dụ: sinh viên nghèo vượt khó học giỏi).
+            </div>
+            <div class="explanation-box" id="exp-q2">
+                <strong>Giải thích:</strong> Đáp án đúng là <strong>C</strong>. Dữ liệu học thuật thực tế có các ranh giới đan xen phức tạp; việc ADASYN cố gắng gia tăng mật độ ở vùng biên xung đột vô tình làm tăng độ nhiễu và gây rối cho mô hình.
+            </div>
+        </div>
+
+        <!-- Câu 3 -->
+        <div class="question-card" id="card-q3">
+            <span class="badge pending" id="badge-q3">Chưa trả lời</span>
+            <div class="question-title">Câu 3: Bản chất khác biệt trong cơ chế học tập giúp nhóm thuật toán Boosting (XGBoost, Gradient Boosting) vượt trội hơn thuật toán Random Forest trong nghiên cứu này là gì?</div>
+            <div class="options-list">
+                <label class="option-item"><input type="radio" name="q3" value="A"> <span>A. Boosting huấn luyện các cây quyết định tuần tự để cây sau tập trung sửa sai cho cây trước, trong khi Random Forest huấn luyện độc lập song song.</span></label>
+                <label class="option-item"><input type="radio" name="q3" value="B"> <span>B. Boosting loại bỏ hoàn toàn các biến tĩnh để chỉ tập trung tính toán các biến số kinh tế phức tạp.</span></label>
+                <label class="option-item"><input type="radio" name="q3" value="C"> <span>C. Random Forest yêu cầu kích thước dữ liệu lớn gấp mười lần thì mới có thể kích hoạt các liên kết phân loại.</span></label>
+                <label class="option-item"><input type="radio" name="q3" value="D"> <span>D. Boosting sử dụng mạng thần kinh nhân tạo nhiều tầng để thay thế hoàn toàn cấu trúc cây quyết định truyền thống.</span></label>
+            </div>
+            <div class="card-actions">
+                <button type="button" class="btn-hint" onclick="toggleHint('hint-q3')"><i class="fa-solid fa-lightbulb"></i> Xem gợi ý</button>
+            </div>
+            <div class="hint-box" id="hint-q3">
+                Hãy chú ý đến cách các mô hình kết hợp nhiều cây quyết định: một bên là bỏ phiếu song song độc lập, một bên là chuỗi sửa sai liên tục.
+            </div>
+            <div class="explanation-box" id="exp-q3">
+                <strong>Giải thích:</strong> Đáp án đúng là <strong>A</strong>. Cơ chế tối ưu hóa tuần tự theo hàm mất mát của Boosting giúp nó bắt được các mối quan hệ phi tuyến phức tạp tốt hơn việc bỏ phiếu song song trung lập của Random Forest.
+            </div>
+        </div>
+
+        <!-- Câu 4 -->
+        <div class="question-card" id="card-q4">
+            <span class="badge pending" id="badge-q4">Chưa trả lời</span>
+            <div class="question-title">Câu 4: Vì sao mô hình tối ưu nhất (XGBoost) lại gặp thất bại nghiêm trọng khi dự đoán lớp 'Thành công tương đối' (F1-score chỉ đạt 0.44)?</div>
+            <div class="options-list">
+                <label class="option-item"><input type="radio" name="q4" value="A"> <span>A. Do thuật toán SMOTE đã vô tình xóa bỏ toàn bộ các hồ sơ thuộc nhóm sinh viên này trước khi huấn luyện.</span></label>
+                <label class="option-item"><input type="radio" name="q4" value="B"> <span>B. Nhóm sinh viên này có hành vi biến động lớn trong quá trình học, điều không thể thể hiện qua hồ sơ tĩnh tại thời điểm nhập học.</span></label>
+                <label class="option-item"><input type="radio" name="q4" value="C"> <span>C. Do điểm F1-score của lớp này bị ảnh hưởng bởi lỗi tràn bộ nhớ khi chạy Grid Search.</span></label>
+                <label class="option-item"><input type="radio" name="q4" value="D"> <span>D. Do nhóm sinh viên này có số lượng quá đông vượt trội làm nhiễu loạn phân phối của hai nhóm còn lại.</span></label>
+            </div>
+            <div class="card-actions">
+                <button type="button" class="btn-hint" onclick="toggleHint('hint-q4')"><i class="fa-solid fa-lightbulb"></i> Xem gợi ý</button>
+            </div>
+            <div class="hint-box" id="hint-q4">
+                Hãy nghĩ về sự khác biệt giữa những gì trường học biết về sinh viên lúc nộp hồ sơ tĩnh ban đầu và những biến đổi thực tế xảy ra trong cuộc sống sinh viên sau đó.
+            </div>
+            <div class="explanation-box" id="exp-q4">
+                <strong>Giải thích:</strong> Đáp án đúng là <strong>B</strong>. Các yếu tố mang tính thay đổi động như sự biến động động lực học tập, biến cố cá nhân phát sinh trong năm học không hề để lại vết tích gì trên dữ liệu tuyển sinh tĩnh ban đầu.
+            </div>
+        </div>
+
+        <!-- Câu 5 -->
+        <div class="question-card" id="card-q5">
+            <span class="badge pending" id="badge-q5">Chưa trả lời</span>
+            <div class="question-title">Câu 5: Một mô hình có chỉ số Precision cao nhưng Recall thấp đối với lớp 'Thất bại' (Failure) sẽ gây ra hệ quả thực tế nào cho nhà trường?</div>
+            <div class="options-list">
+                <label class="option-item"><input type="radio" name="q5" value="A"> <span>A. Nhà trường sẽ lãng phí ngân sách để phân bổ các lớp phụ đạo cho những sinh viên vốn dĩ sẽ tốt nghiệp đúng hạn.</span></label>
+                <label class="option-item"><input type="radio" name="q5" value="B"> <span>B. Mô hình sẽ chạy chậm hơn đáng kể do phải tính toán lại hệ thống ma trận nhầm lẫn (Confusion Matrix).</span></label>
+                <label class="option-item"><input type="radio" name="q5" value="C"> <span>C. Nhà trường sẽ hỗ trợ rất chính xác những người được chọn, nhưng lại bỏ sót rất nhiều sinh viên thực sự đang có nguy cơ bỏ học.</span></label>
+                <label class="option-item"><input type="radio" name="q5" value="D"> <span>D. Hệ thống quản lý học tập LMS sẽ tự động khóa tài khoản của những sinh viên bị xếp nhầm lớp.</span></label>
+            </div>
+            <div class="card-actions">
+                <button type="button" class="btn-hint" onclick="toggleHint('hint-q5')"><i class="fa-solid fa-lightbulb"></i> Xem gợi ý</button>
+            </div>
+            <div class="hint-box" id="hint-q5">
+                Precision đại diện cho 'độ chuẩn xác khi đưa ra dự đoán rủi ro', còn Recall đại diện cho 'khả năng bao phủ, tránh bỏ sót đối tượng rủi ro trong thực tế'.
+            </div>
+            <div class="explanation-box" id="exp-q5">
+                <strong>Giải thích:</strong> Đáp án đúng là <strong>C</strong>. Precision cao nghĩa là hễ đoán ai rủi ro thì người đó chắc chắn rủi ro (không bắt nhầm). Recall thấp nghĩa là khả năng bao phủ kém, quét không hết và bỏ sót những người thực sự cần cứu giúp.
+            </div>
+        </div>
+
+        <!-- Câu 6 -->
+        <div class="question-card" id="card-q6">
+            <span class="badge pending" id="badge-q6">Chưa trả lời</span>
+            <div class="question-title">Câu 6: Vì sao việc phân loại dựa trên dữ liệu tĩnh trước nhập học lại được coi là một bài toán rất phức tạp trong lĩnh vực khai phá dữ liệu giáo dục?</div>
+            <div class="options-list">
+                <label class="option-item"><input type="radio" name="q6" value="A"> <span>A. Vì dữ liệu tĩnh yêu cầu các mô hình máy học phải xử lý các tệp tin đa phương tiện như video và âm thanh của sinh viên.</span></label>
+                <label class="option-item"><input type="radio" name="q6" value="B"> <span>B. Vì các đặc trưng nền tảng (nhân khẩu, kinh tế) chỉ mang tính chất tương quan gián tiếp, không có quan hệ nhân quả trực tiếp với tiến độ tốt nghiệp.</span></label>
+                <label class="option-item"><input type="radio" name="q6" value="C"> <span>C. Vì các trường đại học thường xuyên thay đổi mã định danh và thông tin cá nhân của sinh viên hàng tháng.</span></label>
+                <label class="option-item"><input type="radio" name="q6" value="D"> <span>D. Vì các thuật toán học máy hiện đại chỉ được thiết kế để xử lý dữ liệu dòng chảy (streaming) theo thời gian thực.</span></label>
+            </div>
+            <div class="card-actions">
+                <button type="button" class="btn-hint" onclick="toggleHint('hint-q6')"><i class="fa-solid fa-lightbulb"></i> Xem gợi ý</button>
+            </div>
+            <div class="hint-box" id="hint-q6">
+                Hãy suy nghĩ xem liệu điều kiện kinh tế gia đình hay độ tuổi có hoàn toàn ép buộc 100% một sinh viên phải học kém hay học giỏi hay không.
+            </div>
+            <div class="explanation-box" id="exp-q6">
+                <strong>Giải thích:</strong> Đáp án đúng là <strong>B</strong>. Một sinh viên nghèo hay lớn tuổi vẫn có thể tốt nghiệp xuất sắc nếu có ý chí tự thân; dữ liệu tĩnh ban đầu không đo lường trực tiếp được động lực bên trong này.
+            </div>
+        </div>
+
+        <!-- Câu 7 -->
+        <div class="question-card" id="card-q7">
+            <span class="badge pending" id="badge-q7">Chưa trả lời</span>
+            <div class="question-title">Câu 7: Trong bảng so sánh hiệu năng, thuật toán SVM cho kết quả kém nhất. Nguyên nhân kỹ thuật nào giải thích hợp lý cho hiện tượng này?</div>
+            <div class="options-list">
+                <label class="option-item"><input type="radio" name="q7" value="A"> <span>A. SVM rất nhạy cảm với hiện tượng mất cân bằng lớp và gặp khó khăn khi tìm siêu phẳng phân chia tối ưu trên không gian đa chiều có dữ liệu đan xen lớn.</span></label>
+                <label class="option-item"><input type="radio" name="q7" value="B"> <span>B. SVM không thể thực thi nếu tập dữ liệu đầu vào chứa nhiều hơn 1.000 hồ sơ sinh viên do giới hạn tính toán.</span></label>
+                <label class="option-item"><input type="radio" name="q7" value="C"> <span>C. Do thuật toán SVM bắt buộc toàn bộ dữ liệu đầu vào phải được chuyển đổi thành dạng nhị phân 0 và 1 trước khi chạy.</span></label>
+                <label class="option-item"><input type="radio" name="q7" value="D"> <span>D. Nhóm tác giả đã quên không áp dụng kỹ thuật kiểm định chéo (Cross-validation) khi huấn luyện mô hình SVM.</span></label>
+            </div>
+            <div class="card-actions">
+                <button type="button" class="btn-hint" onclick="toggleHint('hint-q7')"><i class="fa-solid fa-lightbulb"></i> Xem gợi ý</button>
+            </div>
+            <div class="hint-box" id="hint-q7">
+                Hãy nhớ lại cách SVM phân chia các lớp bằng cách tìm kiếm một "siêu phẳng" (hyperplane) có biên rộng nhất.
+            </div>
+            <div class="explanation-box" id="exp-q7">
+                <strong>Giải thích:</strong> Đáp án đúng là <strong>A</strong>. Khi các lớp phân loại không có ranhới rõ ràng và số lượng mẫu bị lệch cực kỳ nghiêm trọng, SVM rất dễ thiết lập các siêu phẳng bị thiên vị hoàn toàn về phía lớp đa số nhằm tối đa khoảng cách.
+            </div>
+        </div>
+
+        <!-- Câu 8 -->
+        <div class="question-card" id="card-q8">
+            <span class="badge pending" id="badge-q8">Chưa trả lời</span>
+            <div class="question-title">Câu 8: Vì sao nghiên cứu lại áp dụng phương pháp kiểm định chéo phân tầng 5-fold (Stratified 5-fold Cross-validation) thay vì kiểm định chéo thông thường?</div>
+            <div class="options-list">
+                <label class="option-item"><input type="radio" name="q8" value="A"> <span>A. Để tăng tốc độ tính toán của thuật toán XGBoost lên gấp năm lần so với thông thường.</span></label>
+                <label class="option-item"><input type="radio" name="q8" value="B"> <span>B. Để loại bỏ hoàn toàn các bước tối ưu hóa siêu tham số bằng Grid Search.</span></label>
+                <label class="option-item"><input type="radio" name="q8" value="C"> <span>C. Để tự động điền các giá trị còn khuyết của biến số kinh tế - xã hội.</span></label>
+                <label class="option-item"><input type="radio" name="q8" value="D"> <span>D. Để đảm bảo tỷ lệ phân bố của 3 lớp mục tiêu được giữ nguyên đồng đều trong cả 5 phần chia dữ liệu huấn luyện và kiểm tra.</span></label>
+            </div>
+            <div class="card-actions">
+                <button type="button" class="btn-hint" onclick="toggleHint('hint-q8')"><i class="fa-solid fa-lightbulb"></i> Xem gợi ý</button>
+            </div>
+            <div class="hint-box" id="hint-q8">
+                Hãy liên hệ thuật ngữ "phân tầng" (Stratified) với thách thức lớn nhất của tập dữ liệu này: sự chênh lệch lớn về số lượng giữa các nhóm sinh viên.
+            </div>
+            <div class="explanation-box" id="exp-q8">
+                <strong>Giải thích:</strong> Đáp án đúng là <strong>D</strong>. Từ khóa "Phân tầng" đảm bảo rằng các tập dữ liệu nhỏ chia ra không bị rơi vào tình trạng có tập chứa quá nhiều hoặc quá ít một lớp thiểu số nào đó do chia ngẫu nhiên.
+            </div>
+        </div>
+
+        <!-- Câu 9 -->
+        <div class="question-card" id="card-q9">
+            <span class="badge pending" id="badge-q9">Chưa trả lời</span>
+            <div class="question-title">Câu 9: Từ góc độ thiết kế hệ thống, điểm khác biệt cốt lõi giữa mô hình trong bài báo và hệ thống phân tích hành vi trên LMS mà trung tâm đào tạo của bạn đang nghiên cứu là gì?</div>
+            <div class="options-list">
+                <label class="option-item"><input type="radio" name="q9" value="A"> <span>A. Mô hình bài báo sử dụng thuộc tính tĩnh (quá khứ), trong khi mô hình LMS khai thác thuộc tính động phản ánh tiến trình học tập theo thời gian thực.</span></label>
+                <label class="option-item"><input type="radio" name="q9" value="B"> <span>B. Mô hình bài báo chỉ chạy trên nền tảng đám mây, còn mô hình LMS bắt buộc phải cài đặt cục bộ tại máy chủ trung tâm.</span></label>
+                <label class="option-item"><input type="radio" name="q9" value="C"> <span>C. Mô hình LMS không cần sử dụng đến các thuật toán học máy hay tối ưu hóa dữ liệu mất cân bằng.</span></label>
+                <label class="option-item"><input type="radio" name="q9" value="D"> <span>D. Mô hình bài báo dành cho cấp đại học, còn hệ thống LMS chỉ có thể áp dụng cho học sinh bậc tiểu học.</span></label>
+            </div>
+            <div class="card-actions">
+                <button type="button" class="btn-hint" onclick="toggleHint('hint-q9')"><i class="fa-solid fa-lightbulb"></i> Xem gợi ý</button>
+            </div>
+            <div class="hint-box" id="hint-q9">
+                Hãy suy nghĩ về tính chất thay đổi theo thời gian của dữ liệu: một bên là hồ sơ cố định khi nộp vào trường, một bên là các cú click chuột hàng ngày.
+            </div>
+            <div class="explanation-box" id="exp-q9">
+                <strong>Giải thích:</strong> Đáp án đúng là <strong>A</strong>. Sự kết hợp giữa dữ liệu tĩnh ban đầu và hành vi tương tác liên tục trên LMS (làm bài tập, thời gian xem bài giảng) sẽ tạo nên một hệ thống dự báo hoàn chỉnh, cập nhật thời gian thực.
+            </div>
+        </div>
+
+        <!-- Câu 10 -->
+        <div class="question-card" id="card-q10">
+            <span class="badge pending" id="badge-q10">Chưa trả lời</span>
+            <div class="question-title">Câu 10: Dựa trên kết luận của bài báo về điểm nghẽn của dữ liệu tĩnh, đề xuất hành động nào là hợp lý nhất để nâng cấp hệ thống dự báo học thuật?</div>
+            <div class="options-list">
+                <label class="option-item"><input type="radio" name="q10" value="A"> <span>A. Ngừng sử dụng thuật toán XGBoost để quay lại tập trung tối ưu hóa mô hình hồi quy tuyến tính đơn giản.</span></label>
+                <label class="option-item"><input type="radio" name="q10" value="B"> <span>B. Tích hợp thêm điểm số các bài kiểm tra nhỏ (quizzes) và dữ liệu chuyên cần của 4 tuần học đầu tiên vào mô hình XGBoost hiện tại.</span></label>
+                <label class="option-item"><input type="radio" name="q10" value="C"> <span>C. Xóa bỏ toàn bộ các biến nhân khẩu học để giảm bớt dung lượng lưu trữ của cơ sở dữ liệu hệ thống.</span></label>
+                <label class="option-item"><input type="radio" name="q10" value="D"> <span>D. Chỉ thu thập dữ liệu của những sinh viên xuất sắc nhất để huấn luyện mô hình dự báo.</span></label>
+            </div>
+            <div class="card-actions">
+                <button type="button" class="btn-hint" onclick="toggleHint('hint-q10')"><i class="fa-solid fa-lightbulb"></i> Xem gợi ý</button>
+            </div>
+            <div class="hint-box" id="hint-q10">
+                Để giải quyết việc thiếu thông tin về mặt hành vi của nhóm sinh viên lấp lửng, chúng ta cần bổ sung loại dữ liệu nào ở giai đoạn đầu học kỳ?
+            </div>
+            <div class="explanation-box" id="exp-q10">
+                <strong>Giải thích:</strong> Đáp án đúng là <strong>B</strong>. Việc bổ sung các chỉ báo hành vi sớm này sẽ cung cấp "mảnh ghép động" thiếu hụt, giúp giải mã chính xác nhóm sinh viên rủi ro trung bình ngay trong tháng học đầu tiên.
+            </div>
+        </div>
+    </form>
+
+    <div class="result-panel" id="resultPanel">
+        <h2>Kết Quả Làm Bài Của Bạn</h2>
+        <div class="result-score" id="scoreText">0 / 10</div>
+        <p id="feedbackText">Hãy rà soát lại giải thích của từng câu hỏi phía trên để củng cố kiến thức học thuật nhé!</p>
+        <button type="button" class="btn-restart" onclick="restartQuiz()"><i class="fa-solid fa-rotate-right"></i> Làm lại bài thi</button>
+    </div>
+</div>
+
+<script>
+    // Định nghĩa bảng đáp án đúng chuẩn tập trung cho toàn bộ 10 câu hỏi
+    const correctAnswers = {
+        q1: 'B',
+        q2: 'C',
+        q3: 'A',
+        q4: 'B',
+        q5: 'C',
+        q6: 'B',
+        q7: 'A',
+        q8: 'D',
+        q9: 'A',
+        q10: 'B'
+    };
+
+    const answersState = {};
+    let currentScore = 0;
+    const totalQuestions = 10;
+
+    // Gán sự kiện Click trực tiếp lên thẻ option-item lớn
+    document.querySelectorAll('.option-item').forEach(item => {
+        item.addEventListener('click', function(e) {
+            const radio = this.querySelector('input[type="radio"]');
+            if (!radio || radio.disabled) return;
+
+            // Đánh dấu check cho radio tương ứng nếu chưa được check
+            if (e.target !== radio) {
+                radio.checked = true;
+            }
+
+            const questionId = radio.getAttribute('name'); // Ví dụ: 'q1'
+            const selectedValue = radio.value; // Ví dụ: 'B'
+
+            // Cập nhật class hiển thị "selected" trong cùng câu hỏi
+            document.querySelectorAll(`input[name="${questionId}"]`).forEach(r => {
+                r.parentElement.classList.remove('selected');
+            });
+            this.classList.add('selected');
+
+            // Gọi hàm chấm điểm và hiển thị kết quả ngay tức khắc
+            submitAnswer(questionId, selectedValue);
+        });
+    });
+
+    // Toggle hiển thị gợi ý
+    function toggleHint(hintId) {
+        const hintBox = document.getElementById(hintId);
+        hintBox.classList.toggle('visible');
+    }
+
+    // Hàm chấm điểm, tô màu và hiển thị lời giải tức thời
+    function submitAnswer(questionId, selectedValue) {
+        // Nếu câu hỏi đã trả lời rồi thì bỏ qua
+        if (answersState[questionId]) return;
+
+        const correctAnswer = correctAnswers[questionId];
+        const isCorrect = selectedValue === correctAnswer;
+        answersState[questionId] = { selectedValue, isCorrect };
+
+        // Khóa các phương án khác của câu hỏi này và tô màu trạng thái
+        document.querySelectorAll(`input[name="${questionId}"]`).forEach(radio => {
+            radio.disabled = true;
+            const parent = radio.parentElement;
+            parent.classList.add('disabled');
+            
+            if (radio.value === correctAnswer) {
+                parent.classList.add('show-correct');
+            } else if (radio.value === selectedValue) {
+                parent.classList.add('show-incorrect');
+            }
+        });
+
+        // Cộng điểm nếu trả lời đúng
+        if (isCorrect) currentScore++;
+
+        // Hiển thị hộp giải thích chi tiết
+        const expBox = document.getElementById(`exp-${questionId}`);
+        expBox.classList.add('visible');
+        if (isCorrect) {
+            expBox.classList.add('correct-bg');
+        } else {
+            expBox.classList.add('incorrect-bg');
+        }
+
+        // Cập nhật Huy hiệu hiển thị Đúng/Sai
+        const badge = document.getElementById(`badge-${questionId}`);
+        badge.className = 'badge ' + (isCorrect ? 'correct' : 'incorrect');
+        badge.innerHTML = isCorrect ? '<i class="fa-solid fa-circle-check"></i> Đúng' : '<i class="fa-solid fa-circle-xmark"></i> Sai';
+
+        // Cập nhật thanh tiến độ của Sticky Header
+        const answeredCount = Object.keys(answersState).length;
+        document.getElementById('progressText').innerText = `Đã trả lời: ${answeredCount}/${totalQuestions} câu hỏi`;
+        
+        const progressPercentage = (answeredCount / totalQuestions) * 100;
+        document.getElementById('progressBar').style.width = progressPercentage + '%';
+        document.getElementById('liveScore').innerText = `Điểm số: ${currentScore} / ${totalQuestions}`;
+
+        // Kiểm tra xem đã hoàn thành hết 10 câu chưa
+        if (answeredCount === totalQuestions) {
+            showFinalResults();
+        }
+    }
+
+    // Hiển thị bảng tổng điểm cuối cùng
+    function showFinalResults() {
+        const resultPanel = document.getElementById('resultPanel');
+        resultPanel.style.display = 'block';
+        document.getElementById('scoreText').innerText = `${currentScore} / ${totalQuestions}`;
+
+        let feedback = "";
+        if (currentScore === totalQuestions) {
+            feedback = "Xuất sắc! Bạn đã hiểu hoàn toàn bản chất tư duy phản biện của nghiên cứu.";
+        } else if (currentScore >= 8) {
+            feedback = "Rất tốt! Bạn nắm rất vững kiến thức so sánh mô hình học máy.";
+        } else if (currentScore >= 5) {
+            feedback = "Đạt yêu cầu! Hãy đọc lại phần giải thích để hiểu sâu hơn lý do chọn thuật toán.";
+        } else {
+            feedback = "Hãy ôn tập lại! Bộ tài liệu này đòi hỏi khả năng phản biện sâu giữa các mô hình.";
+        }
+        document.getElementById('feedbackText').innerText = feedback;
+        resultPanel.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Khởi động lại bài trắc nghiệm về trạng thái ban đầu
+    function restartQuiz() {
+        currentScore = 0;
+        for (let key in answersState) {
+            delete answersState[key];
+        }
+
+        document.getElementById('progressText').innerText = `Đã trả lời: 0/${totalQuestions} câu hỏi`;
+        document.getElementById('progressBar').style.width = '0%';
+        document.getElementById('liveScore').innerText = `Điểm số: 0 / ${totalQuestions}`;
+        document.getElementById('resultPanel').style.display = 'none';
+
+        document.querySelectorAll('.question-card').forEach(card => {
+            const questionId = card.id.replace('card-', '');
+            
+            const badge = document.getElementById(`badge-${questionId}`);
+            badge.className = 'badge pending';
+            badge.innerText = 'Chưa trả lời';
+
+            const expBox = document.getElementById(`exp-${questionId}`);
+            expBox.className = 'explanation-box';
+
+            const hintBox = document.getElementById(`hint-${questionId}`);
+            hintBox.className = 'hint-box';
+
+            document.querySelectorAll(`input[name="${questionId}"]`).forEach(radio => {
+                radio.checked = false;
+                radio.disabled = false;
+                const parent = radio.parentElement;
+                parent.className = 'option-item';
+            });
+        });
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+</script>
+</body>
+</html>
